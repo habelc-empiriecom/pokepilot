@@ -1,0 +1,12 @@
+services:
+  db:
+    image: postgres:16
+    container_name: pokemon-db
+    environment:
+      POSTGRES_USER: pokedb
+      POSTGRES_PASSWORD: AI_Th0ught_L3ad3r
+      POSTGRES_DB: pokedb
+    network_mode: host
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./pokemon.csv:/docker-entrypoint-initdb.d/pokemon.csv
