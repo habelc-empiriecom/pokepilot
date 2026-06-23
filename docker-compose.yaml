@@ -2,11 +2,12 @@ services:
   db:
     image: postgres:16
     container_name: pokemon-db
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: pokedb
       POSTGRES_PASSWORD: AI_Th0ught_L3ad3r
       POSTGRES_DB: pokedb
-    network_mode: host
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./pokemon.csv:/docker-entrypoint-initdb.d/pokemon.csv
@@ -34,9 +35,12 @@ services:
   webapp:
     build: ./webapp
     container_name: pokepilot-web
-    network_mode: host
+    ports:
+      - "8000:8000"
     environment:
-      MODEL: phi3.5:3.8b
+      MODEL: llama3.2:3b
+      DB_DSN: "host=db port=5432 dbname=pokedb user=pokedb password=AI_Th0ught_L3ad3r"
+      OLLAMA_URL: "http://ollama:11434/v1/chat/completions"
     depends_on:
       - db
       - ollama
