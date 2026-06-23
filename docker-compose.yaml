@@ -10,3 +10,12 @@ services:
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./pokemon.csv:/docker-entrypoint-initdb.d/pokemon.csv
+
+  mcp-pokeapi:
+    build: ./mcp_pokeapi
+    container_name: mcp-pokeapi
+    ports:
+      - "8080:8080"
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
