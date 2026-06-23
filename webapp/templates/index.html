@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokepilot</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+  .logo {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    margin-bottom: 32px;
+    font-size: 0.9rem;
+  }
+  .search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .search-box input {
+    flex: 1;
+    padding: 14px 20px;
+    border: 2px solid #333;
+    border-radius: 24px;
+    background: #16213e;
+    color: #e0e0e0;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box input:focus {
+    border-color: #4d96ff;
+  }
+  .search-box button {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 24px;
+    background: #4d96ff;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .search-box button:hover { background: #3a7fd4; }
+  .search-box button:disabled {
+    background: #555;
+    cursor: not-allowed;
+  }
+  .reasoning {
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+    color: #aaa;
+    line-height: 1.5;
+  }
+  .reasoning strong { color: #4d96ff; }
+  .note {
+    text-align: center;
+    color: #888;
+    padding: 40px 0;
+    font-size: 1.1rem;
+  }
+  .results { display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    display: flex;
+    gap: 20px;
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 20px;
+    transition: border-color 0.2s, transform 0.15s;
+    animation: fadeIn 0.3s ease;
+  }
+  .card:hover {
+    border-color: #4d96ff;
+    transform: translateY(-2px);
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-sprite {
+    flex-shrink: 0;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a2e;
+    border-radius: 12px;
+  }
+  .card-sprite img {
+    max-width: 100%;
+    max-height: 100%;
+    image-rendering: pixelated;
+  }
+  .card-sprite .no-sprite {
+    color: #555;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+  .card-info { flex: 1; min-width: 0; }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .card-header .id {
+    color: #666;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .card-header .name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .type-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .legendary-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffd700, #ff6b00);
+    color: #1a1a2e;
+    text-transform: uppercase;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .stat {
+    font-size: 0.8rem;
+    color: #999;
+  }
+  .stat .value {
+    color: #e0e0e0;
+    font-weight: 600;
+  }
+  .stat-bar {
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    margin-top: 2px;
+    overflow: hidden;
+  }
+  .stat-bar .fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+  .card-footer {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: #888;
+  }
+  .card-footer span strong { color: #aaa; }
+  .abilities {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .ability {
+    background: #1a1a2e;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: #aaa;
+    border: 1px solid #333;
+  }
+  .spinner {
+    display: none;
+    text-align: center;
+    padding: 40px;
+  }
+  .spinner.active { display: block; }
+  .spinner::after {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #333;
+    border-top-color: #4d96ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error {
+    text-align: center;
+    color: #ff6b6b;
+    padding: 20px;
+    display: none;
+  }
+  .error.active { display: block; }
+  .type-Normal { background: #A8A77A; }
+  .type-Fire { background: #EE8130; }
+  .type-Water { background: #6390F0; }
+  .type-Electric { background: #F7D02C; color: #333; }
+  .type-Grass { background: #7AC74C; }
+  .type-Ice { background: #96D9D6; color: #333; }
+  .type-Fighting { background: #C22E28; }
+  .type-Poison { background: #A33EA1; }
+  .type-Ground { background: #E2BF65; color: #333; }
+  .type-Flying { background: #A98FF3; }
+  .type-Psychic { background: #F95587; }
+  .type-Bug { background: #A6B91A; }
+  .type-Rock { background: #B6A136; }
+  .type-Ghost { background: #735797; }
+  .type-Dragon { background: #6F35FC; }
+  .type-Dark { background: #705746; }
+  .type-Steel { background: #B7B7CE; color: #333; }
+  .type-Fairy { background: #D685AD; }
+  @media (max-width: 600px) {
+    .container { padding: 20px 16px; }
+    .logo { font-size: 2rem; }
+    .card { flex-direction: column; align-items: center; text-align: center; }
+    .card-sprite { width: 96px; height: 96px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .card-header { justify-content: center; }
+    .card-footer { justify-content: center; }
+    .abilities { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">pokepilot</div>
+  <div class="subtitle">Ask for Pokemon recommendations in natural language</div>
+  <div class="search-box">
+    <input type="text" id="query" placeholder='e.g. "Build me a rain team" or "fast physical attackers gen 3"' autofocus>
+    <button id="search-btn" onclick="search()">Search</button>
+  </div>
+  <div id="spinner" class="spinner"></div>
+  <div id="error" class="error"></div>
+  <div id="results"></div>
+</div>
+
+<script>
+  const input = document.getElementById('query');
+  const btn = document.getElementById('search-btn');
+  const resultsDiv = document.getElementById('results');
+  const spinner = document.getElementById('spinner');
+  const errorDiv = document.getElementById('error');
+
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+
+  async function search() {
+    const question = input.value.trim();
+    if (!question) return;
+
+    btn.disabled = true;
+    spinner.classList.add('active');
+    errorDiv.classList.remove('active');
+    errorDiv.textContent = '';
+    resultsDiv.innerHTML = '';
+
+    try {
+      const resp = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || `Error ${resp.status}`);
+      }
+      const data = await resp.json();
+      renderResults(data);
+    } catch (err) {
+      errorDiv.textContent = err.message;
+      errorDiv.classList.add('active');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.remove('active');
+    }
+  }
+
+  function renderResults(data) {
+    const html = [];
+
+    if (data.reasoning) {
+      html.push(`<div class="reasoning"><strong>Strategy:</strong> ${escapeHtml(data.reasoning)}</div>`);
+    }
+
+    if (data.note) {
+      html.push(`<div class="note">${escapeHtml(data.note)}</div>`);
+    }
+
+    if (data.results && data.results.length) {
+      html.push('<div class="results">');
+      for (const p of data.results) {
+        html.push(renderCard(p));
+      }
+      html.push('</div>');
+    }
+
+    resultsDiv.innerHTML = html.join('');
+  }
+
+  function renderCard(p) {
+    const types = p.types.map(t =>
+      `<span class="type-badge type-${t}">${t}</span>`
+    ).join(' ');
+
+    const legendary = p.legendary ? '<span class="legendary-badge">Legendary</span>' : '';
+
+    const maxStat = 255;
+    const stats = [
+      { label: 'HP', value: p.hp, color: '#ff6b6b' },
+      { label: 'ATK', value: p.attack, color: '#f08a5d' },
+      { label: 'DEF', value: p.defense, color: '#f9ca24' },
+      { label: 'SpA', value: p.sp_atk, color: '#6abbed' },
+      { label: 'SpD', value: p.sp_def, color: '#5f27cd' },
+      { label: 'SPD', value: p.speed, color: '#78e08f' },
+    ];
+    const statBars = stats.map(s =>
+      `<div class="stat">
+        ${s.label} <span class="value">${s.value}</span>
+        <div class="stat-bar"><div class="fill" style="width:${(s.value/maxStat*100).toFixed(0)}%;background:${s.color}"></div></div>
+      </div>`
+    ).join('');
+
+    const abilities = p.abilities && p.abilities.length
+      ? `<div class="abilities">${p.abilities.map(a => `<span class="ability">${a}</span>`).join('')}</div>`
+      : '';
+
+    const spriteHtml = p.sprite
+      ? `<img src="${escapeHtml(p.sprite)}" alt="${escapeHtml(p.name)}">`
+      : '<div class="no-sprite">No image</div>';
+
+    const heightWeight = [];
+    if (p.height) heightWeight.push(`Height: <strong>${p.height}m</strong>`);
+    if (p.weight) heightWeight.push(`Weight: <strong>${p.weight}kg</strong>`);
+
+    return `
+      <div class="card">
+        <div class="card-sprite">${spriteHtml}</div>
+        <div class="card-info">
+          <div class="card-header">
+            <span class="id">#${String(p.id).padStart(3, '0')}</span>
+            <span class="name">${escapeHtml(p.name)}</span>
+            ${types}
+            ${legendary}
+          </div>
+          <div class="stats">${statBars}</div>
+          ${abilities}
+          <div class="card-footer">
+            <span>Total: <strong>${p.total}</strong></span>
+            <span>Gen: <strong>${p.generation}</strong></span>
+            ${heightWeight.length ? `<span>${heightWeight.join(' &middot; ')}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>

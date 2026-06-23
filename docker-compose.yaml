@@ -19,3 +19,28 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Auf macOS mit Metal (Apple Silicon) reicht der Eintrag oben;
+    # für NVIDIA-GPU unter Linux deployment/resources.reservations.devices ergänzen
+
+  webapp:
+    build: ./webapp
+    container_name: pokepilot-web
+    network_mode: host
+    environment:
+      MODEL: phi3.5:3.8b
+    depends_on:
+      - db
+      - ollama
+      - mcp-pokeapi
+
+volumes:
+  ollama_data:
