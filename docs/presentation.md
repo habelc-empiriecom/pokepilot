@@ -55,7 +55,7 @@ style: |
 
 # The Problem
 
-Our original idea: an **AI agent for automated product selection** in newsletter campaigns.
+Our original idea: an **AI agent for automated data selection and enrichement** (news curation, product selection + campaign).
 
 Then reality hit: **we come from three different companies.**
 
@@ -71,13 +71,12 @@ Then reality hit: **we come from three different companies.**
 
 # PokePilot: The Transfer
 
-| Newsletter Agent _(original idea)_ | PokePilot _(demo)_ |
+| _(original idea)_ | PokePilot _(demo)_ |
 |-------------------------------------|-------------------|
 | Natural language → product filters | Natural language → Pokémon filters |
 | ERP · Shop API · trend data | PostgreSQL · PokeAPI · Ollama |
 | LLM generates SQL WHERE clause | LLM generates SQL WHERE clause |
 | Product cards + campaign reasoning | Pokémon cards + strategy explanation |
-| Local, privacy-compliant | Local, fully containerised |
 
 > **Same idea. Same technology. Different data.**
 
@@ -87,8 +86,8 @@ Then reality hit: **we come from three different companies.**
 
 | Source | What it provides | Real-world analogy |
 |--------|-----------------|-------------------|
-| **PostgreSQL** | 800+ Pokémon: stats, types, generations | ERP / data warehouse |
-| **PokeAPI** | Sprites, abilities, height, weight | Online shop API / PIM |
+| **PostgreSQL** | 800+ Pokémon: stats, types, generations | ERP / data warehouse / ... |
+| **PokeAPI** (MCP) | Sprites, abilities, height, weight | Online shop API / PIM |
 | **Ollama (local)** | Natural language → SQL filters + reasoning | AI reasoning layer |
 
 A single natural-language question links all three automatically.
@@ -101,7 +100,7 @@ A single natural-language question links all three automatically.
 "Build me a rain team for competitive battles."
           │
           ▼
-  Ollama (phi3.5, running locally)
+  Ollama (llama3.2:3b, running locally)
           │ generates structured JSON
           ▼
   { "where": "(type1='Water' OR type2='Water') AND speed > 80",
@@ -125,7 +124,7 @@ The transfer is direct — only the data sources change:
 | PokePilot | Smart Promotion Copilot |
 |-----------|------------------------|
 | `"Build me a rain team"` | `"Top 20 women's fashion with > 30% discount"` |
-| PostgreSQL (Pokémon stats) | BigQuery / ERP (margins, stock levels) |
+| PostgreSQL (Pokémon stats) | BigQuery / ERP (margins, stock levels) / Sharepoint |
 | PokeAPI (artwork, abilities) | Shop API / PIM (product images, descriptions) |
 | Ollama local | Ollama local — no data leaving the premises |
 | Strategy explanation | Campaign reasoning + ranking |
@@ -139,6 +138,8 @@ The transfer is direct — only the data sources change:
 # Thank You
 
 ## PokePilot — Agentic AI, local, reproducible, transferable
+
+`git clone https://github.com/habelc-empiriecom/pokepilot`
 
 `docker compose up` · `http://localhost:8000`
 
