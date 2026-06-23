@@ -84,14 +84,67 @@ async def ask(req: AskRequest):
             "abilities": detail.get("abilities", []),
             "height": detail.get("height", ""),
             "weight": detail.get("weight", ""),
+            "highlights": extract_highlights(row),
         })
 
-    return {"results": results, "reasoning": filters["reasoning"]}
+    return {
+        "question": req.question,
+        "sql_query": query,
+        "reasoning": filters["reasoning"],
+        "results": results,
+        "sources": [
+            {
+                "name": "Pokemon Stats Database",
+                "description": "PostgreSQL database seeded with the Kaggle Pokemon dataset (Generations 1–6, 800+ entries including base forms, Mega Evolutions, and alternate forms).",
+                "url": "https://www.kaggle.com/datasets/abcsds/pokemon"
+            },
+            {
+                "name": "PokeAPI",
+                "description": "Official Pokemon sprite images, abilities, height, and weight data from the public RESTful Pokemon API.",
+                "url": "https://pokeapi.co"
+            },
+            {
+                "name": f"Ollama ({MODEL})",
+                "description": "Local large language model used to translate natural language queries into database search filters.",
+                "url": "https://ollama.ai"
+            }
+        ],
+    }
+
+
+def extract_highlights(row: dict) -> list:
+    stats = [
+        ("HP", row["hp"]), ("ATK", row["attack"]), ("DEF", row["defense"]),
+        ("SpA", row["sp_atk"]), ("SpD", row["sp_def"]), ("SPD", row["speed"])
+    ]
+    max_stat = max(stats, key=lambda x: x[1])
+    highlights = [f"Highest stat: {max_stat[0]} ({max_stat[1]})"]
+    if row["speed"] >= 100:
+        highlights.append(f"Fast ({row['speed']} Speed)")
+    if row["attack"] >= 120:
+        highlights.append(f"Strong physical attacker ({row['attack']} ATK)")
+    elif row["attack"] >= 100:
+        highlights.append(f"Decent physical attacker ({row['attack']} ATK)")
+    if row["sp_atk"] >= 120:
+        highlights.append(f"Strong special attacker ({row['sp_atk']} SpA)")
+    elif row["sp_atk"] >= 100:
+        highlights.append(f"Decent special attacker ({row['sp_atk']} SpA)")
+    if row["defense"] >= 100 and row["sp_def"] >= 100:
+        highlights.append("Bulky (100+ both defenses)")
+    elif row["defense"] >= 100:
+        highlights.append(f"Physically bulky ({row['defense']} DEF)")
+    elif row["sp_def"] >= 100:
+        highlights.append(f"Specially bulky ({row['sp_def']} SpD)")
+    if row["total"] >= 600:
+        highlights.append("Pseudo-legendary tier stats")
+    if row["total"] >= 500 and row["total"] < 600:
+        highlights.append("Strong base stats")
+    return highlights
 
 
 async def generate_filters(question: str) -> dict:
     type_list = ", ".join(TYPES)
-    prompt = f"""You are a Pokemon team builder. The PostgreSQL table 'pokemon' has:
+    prompt = f"""You are a Pokemon competitive team builder. The PostgreSQL table 'pokemon' has:
 - id (INTEGER), name (TEXT)
 - type1 (TEXT), type2 (TEXT) — valid types: {type_list}
 - total, hp, attack, defense, sp_atk, sp_def, speed (INTEGER)
@@ -100,14 +153,12 @@ async def generate_filters(question: str) -> dict:
 The user asks: "{question}"
 
 Return ONLY valid JSON (no markdown, no extra text):
-{{"where": "SQL WHERE clause (safe column names + quoted values)", "order_by": "column DESC/ASC", "limit": number (1-20), "reasoning": "short explanation"}}
+{{"where": "SQL WHERE clause (safe column names + quoted string values)", "order_by": "column DESC/ASC", "limit": number (1-20), "reasoning": "detailed multi-sentence explanation covering the competitive strategy, why specific types/tiers/stats are chosen, and how the selection fulfills the user's request"}}
 
 Examples:
-- "fast electric types" -> {{"where": "(type1='Electric' OR type2='Electric') AND speed > 100", "order_by": "speed DESC", "limit": 10, "reasoning": "Electric-types with high Speed for fast attackers."}}
-- "rain team" -> {{"where": "type1='Water' OR type2='Water'", "order_by": "total DESC", "limit": 10, "reasoning": "Water-types perform well in rain."}}
-- "tanky fire types" -> {{"where": "(type1='Fire' OR type2='Fire') AND defense > 80 AND hp > 80", "order_by": "defense DESC", "limit": 5, "reasoning": "Fire-types with high Defense and HP for bulky tanks."}}
-- "generation 1 legendaries" -> {{"where": "generation=1 AND legendary=True", "order_by": "total DESC", "limit": 5, "reasoning": "Legendary Pokemon from Gen 1."}}
-- "mixed weather team" -> {{"where": "total > 500 AND generation > 3", "order_by": "total DESC", "limit": 10, "reasoning": "High-stat Pokemon from recent generations for versatility."}}"""
+- "fast electric types" -> {{"where": "(type1='Electric' OR type2='Electric') AND speed > 100", "order_by": "speed DESC", "limit": 10, "reasoning": "Electric-types with Speed over 100 make excellent fast offensive pivots. High Speed ensures they can outpace common threats and land critical hits before taking damage. Priority is given to Speed to maximize the revenge-killing potential of these Pokemon."}}
+- "rain team" -> {{"where": "(type1='Water' OR type2='Water') AND speed > 80", "order_by": "speed DESC", "limit": 8, "reasoning": "Rain teams revolve around Swift Swim abusers and Water-type attackers that benefit from rain-boosted Water moves. Water-types with solid Speed stats are preferred to apply immediate offensive pressure under rain. Fast Pokemon like Floatzel and Ludicolo can sweep once rain is up."}}
+- "tanky fire types" -> {{"where": "(type1='Fire' OR type2='Fire') AND defense >= 80 AND hp >= 80", "order_by": "defense DESC", "limit": 5, "reasoning": "Bulky Fire-types serve as defensive cores that can take hits and retaliate with STAB Fire moves. High Defense and HP ensure they can switch into physical attackers repeatedly. These Pokemon often pair well with rain or sand teams to cover their Water weakness."}}"""
 
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(OLLAMA_URL, json={
